@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Sign in · Dyn Login{% endblock %}
+{% block content %}
+<section class="auth-layout" aria-label="Sign in">
+  <div class="page-intro">
+    <span class="eyebrow"><span class="status-dot"></span> YOUR TEST SPACE</span>
+    <h1>{% if fields|length == 1 and fields[0].name == 'otp' %}One last step{% else %}Welcome back{% endif %}<span class="accent">.</span></h1>
+    <p>{% if page_count > 1 %}A familiar flow. One step at a time.{% else %}A familiar form. Configured your way.{% endif %}</p>
+  </div>
+  {% if page_count > 1 %}
+  <div class="flow-header"><span>Step {{ page_index + 1 }} of {{ page_count }}</span><span>{% if fields|length == 1 %}{{ fields[0].label }}{% else %}Your credentials{% endif %}</span></div>
+  <ol class="flow-progress" aria-label="Login progress">{% for i in range(page_count) %}<li class="{% if i < page_index %}complete{% elif i == page_index %}current{% endif %}" {% if i == page_index %}aria-current="step"{% endif %}><span class="sr-only">Step {{ i + 1 }}{% if i < page_index %}, complete{% endif %}</span></li>{% endfor %}</ol>
+  {% endif %}
+  <div class="auth-card">
+    <div class="card-heading"><h2>{% if page_count == 1 %}Sign in{% elif fields|length == 1 and fields[0].name == 'otp' %}Verify your sign-in{% elif fields|length == 1 %}Enter your {{ fields[0].name }}{% else %}Enter your credentials{% endif %}</h2><span class="small-icon" aria-hidden="true">↗</span></div>
+    <p class="card-description">{% if fields|length == 1 and fields[0].name == 'otp' %}Enter your test verification code to finish.{% elif page_count > 1 %}Enter your test details to continue.{% else %}Enter your test credentials to continue.{% endif %}</p>
+    {% if error %}<div class="alert" role="alert">{{ error }}</div>{% endif %}
+    <form method="post" action="{{ action }}">
+      {% for field in fields %}
+      <div class="field"><label for="{{ field.element_id }}">{{ field.label }}</label><input type="{{ field.type }}" id="{{ field.element_id }}" name="{{ field.name }}" placeholder="Your {{ field.label|lower }}" autocomplete="{{ field.autocomplete }}"></div>
+      {% endfor %}
+      <button class="button primary" type="submit" id="{{ page.submit_id }}"><span>{% if page_index + 1 == page_count %}Sign in{% else %}Continue{% endif %}</span><span aria-hidden="true">→</span></button>
+    </form>
+    <div class="card-footnote"><span class="lock-icon" aria-hidden="true"></span> A test login, with a real browser session.</div>
+  </div>
+  <div class="config-strip"><span class="config-label">CONFIGURATION</span><code>{{ config_id }}</code></div>
+  <details class="form-details"><summary>Form details <span aria-hidden="true">+</span></summary><dl>{% for field in fields %}<div><dt>{{ field.label }} ID</dt><dd><code>{{ field.element_id }}</code></dd></div>{% endfor %}<div><dt>Button ID</dt><dd><code>{{ page.submit_id }}</code></dd></div>{% if page_count > 1 %}<div><dt>Page path</dt><dd><code>{{ page.path }}</code></dd></div>{% endif %}</dl></details>
+  <p class="understated">Built for testing. Use test credentials only.</p>
+</section>
+{% endblock %}

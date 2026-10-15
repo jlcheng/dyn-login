@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Dyn Login{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+</head>
+<body>
+  <div class="site-shell">
+    <header class="site-header">
+      <a class="brand" href="{{ url_for('home') }}" aria-label="Dyn Login home"><span class="brand-icon" aria-hidden="true"><span></span><span></span><span></span><span></span></span><span>dyn<span class="brand-light">login</span><span class="brand-dot">.</span></span></a>
+      <span class="header-note">A small space for testing.</span>
+    </header>
+    <main>{% block content %}{% endblock %}</main>
+    <footer class="site-footer"><span>Simple forms. Predictable results.</span><a href="{{ url_for('home') }}">About Dyn Login <span aria-hidden="true">↗</span></a></footer>
+  </div>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

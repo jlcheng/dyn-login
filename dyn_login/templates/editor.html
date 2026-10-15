@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Configuration editor · Dyn Login{% endblock %}
+{% block content %}
+<section class="editor-layout">
+  <div class="editor-intro"><a class="back-link" href="{{ url_for('home') }}">← Back to Dyn Login</a><span class="eyebrow"><span class="status-dot"></span> MAKE IT YOURS</span><h1>Your next test starts here<span class="accent">.</span></h1><p>Start with a template, edit the JSON, and get a link to your login flow.</p></div>
+  <form class="editor-grid" novalidate>
+    <section class="editor-panel">
+      <div class="editor-panel-header"><div><span class="panel-number">01</span><h2>The configuration</h2></div><button class="text-button" type="button" id="format-json">Format JSON</button></div>
+      <div class="template-control"><label for="template">Start from a template</label><select id="template">{% for key, template in templates.items() %}<option value="{{ key }}" data-configuration="{{ template.configuration|tojson|forceescape }}" data-description="{{ template.description }}">{{ template.label }}</option>{% endfor %}</select><p id="template-description">{{ templates.single.description }}</p></div>
+      <div class="json-label"><label for="configuration">Configuration JSON</label><span>EDITABLE</span></div>
+      <textarea id="configuration" class="json-editor" spellcheck="false" autocomplete="off" autocapitalize="off" rows="24">{{ initial_json }}</textarea>
+      <p class="editor-small-note">Field names map to HTML element IDs. Verification codes are fixed test values.</p>
+    </section>
+    <section class="editor-panel editor-output">
+      <div class="editor-panel-header"><div><span class="panel-number">02</span><h2>Your test link</h2></div><span class="small-icon" aria-hidden="true">↗</span></div>
+      <div class="config-id-control"><label for="config-id">Configuration ID</label><div class="input-with-button"><input id="config-id" type="text" value="{{ config_id }}" autocomplete="off" spellcheck="false" maxlength="128"><button class="text-button" type="button" id="new-id">New ID</button></div><p>A new ID gives this test its own login flow.</p></div>
+      <button class="button primary" type="submit" id="validate"><span>Validate &amp; generate link</span><span aria-hidden="true">→</span></button>
+      <p class="editor-status" id="editor-status" role="status" aria-live="polite" aria-atomic="true">Ready when you are.</p>
+      <div class="generated-link"><label for="configure-url">Configure URL</label><textarea id="configure-url" readonly spellcheck="false" rows="4" placeholder="Your validated link will appear here."></textarea><p id="link-length">The JSON is compacted before encoding to keep the link small.</p></div>
+      <div class="editor-link-actions"><button class="button secondary" id="copy-link" type="button" disabled><span>Copy link</span><span aria-hidden="true">⧉</span></button><a class="button secondary" id="open-link" aria-disabled="true" tabindex="-1" target="_blank" rel="noopener noreferrer"><span>Open login</span><span aria-hidden="true">↗</span></a></div>
+      <div class="editor-explanation"><h3>What happens next?</h3><p>Copy the link for your test, or open it to configure the login flow. Opening it creates or replaces the configuration for this ID.</p><p>Validation only checks your JSON. It doesn't save a configuration.</p></div>
+    </section>
+  </form>
+  <noscript><div class="alert">Enable JavaScript to use the configuration editor.</div></noscript>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='editor.js') }}" defer></script>{% endblock %}

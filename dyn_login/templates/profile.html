@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Your profile · Dyn Login{% endblock %}
+{% block content %}
+<section class="auth-layout">
+  <div class="page-intro"><span class="eyebrow"><span class="status-dot"></span> SESSION ACTIVE</span><h1>You're in<span class="accent">.</span></h1><p>That sign-in went just as planned.</p></div>
+  <div class="auth-card profile-card">
+    <div class="success-mark" aria-hidden="true">✓</div><h2>Nice to see you.</h2><p class="card-description">You're signed in as</p><p class="profile-username">{{ username }}</p>
+    <div class="profile-status"><span class="status-dot"></span> Authenticated</div>
+    <a class="button primary" href="{{ url_for('logout', config_id=config_id) }}"><span>Logout</span><span aria-hidden="true">→</span></a>
+    <div class="card-footnote">Your session is independent of other configurations.</div>
+  </div>
+  <div class="config-strip"><span class="config-label">CONFIGURATION</span><code>{{ config_id }}</code></div>
+  <p class="understated">Refresh, navigate, or test another tab. You're still signed in.</p>
+</section>
+{% endblock %}

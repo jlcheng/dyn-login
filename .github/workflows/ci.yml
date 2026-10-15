@@ -1,0 +1,89 @@
+name: Validate and deploy
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.11.26'
+          enable-cache: true
+      - run: uv sync --locked --python 3.12
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
+      - run: uv run playwright install --with-deps chromium
+      - run: uv run pytest -q
+      - name: Build and validate the production container
+        run: |
+          docker build --platform linux/amd64 -t dyn-login:test .
+          docker run --rm \
+            -e SESSION_SIGNING_KEY=ci-only \
+            -e AWS_ACCESS_KEY_ID=testing \
+            -e AWS_SECRET_ACCESS_KEY=testing \
+            --entrypoint gunicorn dyn-login:test \
+            --check-config --config gunicorn.conf.py 'dyn_login:create_app()'
+
+  deploy:
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: dyn-login-production
+      cancel-in-progress: false
+    env:
+      AWS_REGION: us-west-2
+      IMAGE_TAG: ${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-west-2
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr
+      - name: Publish container
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          IMAGE="$REGISTRY/dyn-login:$IMAGE_TAG"
+          docker build --platform linux/amd64 -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+      - name: Fetch current task definition
+        run: aws ecs describe-task-definition --task-definition dyn-login --query taskDefinition > task-definition.json
+      - uses: aws-actions/amazon-ecs-render-task-definition@v1
+        id: task
+        with:
+          task-definition: task-definition.json
+          container-name: dyn-login
+          image: ${{ env.IMAGE }}
+      - uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        id: deployment
+        with:
+          task-definition: ${{ steps.task.outputs.task-definition }}
+          cluster: dyn-login
+          service: dyn-login
+          wait-for-service-stability: true
+          wait-for-minutes: 15
+      - name: Verify deployed revision and website
+        env:
+          EXPECTED_TASK: ${{ steps.deployment.outputs.task-definition-arn }}
+        run: |
+          ACTIVE_TASK=$(aws ecs describe-services --cluster dyn-login --services dyn-login --query 'services[0].taskDefinition' --output text)
+          test "$ACTIVE_TASK" = "$EXPECTED_TASK"
+          aws ecs describe-services --cluster dyn-login --services dyn-login --output json > service.json
+          python -c 'import json; s=json.load(open("service.json"))["services"][0]; assert s["desiredCount"] > 0 and s["runningCount"] == s["desiredCount"], "Service has no healthy running tasks"'
+          python scripts/smoke.py https://dyn-login.jcheng.org

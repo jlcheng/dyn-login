@@ -1,0 +1,24 @@
+{
+  "expected_credentials": {
+    "username": "test-user",
+    "password": "test-password",
+    "otp": "123456"
+  },
+  "pages": [
+    {
+      "path": "/login-step1",
+      "fields": { "username": "un" },
+      "submit_id": "next-username"
+    },
+    {
+      "path": "/login-step2",
+      "fields": { "password": "p" },
+      "submit_id": "next-password"
+    },
+    {
+      "path": "/login-step3",
+      "fields": { "otp": "o" },
+      "submit_id": "sign-in"
+    }
+  ]
+}

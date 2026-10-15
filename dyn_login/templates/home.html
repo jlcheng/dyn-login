@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="home-layout">
+  <div class="page-intro"><span class="eyebrow"><span class="status-dot"></span> YOUR FRIENDLY LOGIN TEST SITE</span><h1>One form.<br>Your selectors<span class="accent">.</span></h1><p>Configurable sign-in flows for testing browser extensions.<br class="desktop-break"> Set the IDs. Choose the credentials. Test your flow.</p></div>
+  <a class="button primary demo-link" href="{{ url_for('editor') }}"><span>Create a configuration</span><span aria-hidden="true">→</span></a>
+  {% if preview %}<a class="button primary demo-link" href="{{ url_for('login', config_id='demo') }}"><span>Open the demo login</span><span aria-hidden="true">→</span></a><a class="button secondary demo-link" href="{{ url_for('login', config_id='multi-demo') }}"><span>Open the multi-page demo</span><span aria-hidden="true">→</span></a><p class="demo-credentials">Demo credentials: <code>test-user</code> / <code>test-password</code> · code <code>123456</code></p>{% endif %}
+  <div class="steps"><div><span class="step-number">01</span><h2>Make it yours</h2><p>Choose a configuration ID, your pages, element IDs, and the credentials you want to test.</p></div><div><span class="step-number">02</span><h2>Open your page</h2><p>Encode your configuration in a URL. Your login page is ready as soon as you visit it.</p></div><div><span class="step-number">03</span><h2>Run your test</h2><p>Fill it, submit it, and land on your profile. Every configuration gets its own session.</p></div></div>
+  <section class="quick-start"><div class="quick-start-heading"><h2>A login page in a few lines.</h2><span class="code-label">PYTHON 3</span></div><p>Run this example, then open the URL it prints. Configurations last 30 days.</p><pre><code>import base64, json, uuid
+from urllib.parse import urlencode
+
+config = {
+    "username_id": "user-field",
+    "password_id": "password-field",
+    "login_id": "submit-button",
+    "expected_username": "test-user",
+    "expected_password": "test-password",
+}
+data = base64.urlsafe_b64encode(
+    json.dumps(config).encode("utf-8")
+).decode("ascii")
+config_id = str(uuid.uuid4())
+base = {{ request.url_root.rstrip('/')|tojson }}
+print(f"{base}/{config_id}/configure?" + urlencode({"data": data}))</code></pre></section>
+  <div class="home-note"><span class="status-dot"></span><span>No accounts to create. Just a form to test.</span></div>
+</section>
+{% endblock %}

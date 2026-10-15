@@ -1,0 +1,10 @@
+root = true
+if_missing = "error"
+
+[providers.aws]
+type = "aws-sm"
+region = "us-west-2"
+prefix = "dyn-login/"
+
+[secrets]
+SESSION_SIGNING_KEY = { provider = "aws", value = "session-signing-key" }
