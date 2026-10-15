@@ -25,7 +25,7 @@ jobs:
       - run: uv run pytest -q
       - name: Build and validate the production container
         run: |
-          docker build --platform linux/amd64 -t dyn-login:test .
+          docker build --platform linux/amd64 --provenance=false -t dyn-login:test .
           docker run --rm \
             -e SESSION_SIGNING_KEY=ci-only \
             -e AWS_ACCESS_KEY_ID=testing \
@@ -59,7 +59,7 @@ jobs:
           REGISTRY: ${{ steps.ecr.outputs.registry }}
         run: |
           IMAGE="$REGISTRY/dyn-login:$IMAGE_TAG"
-          docker build --platform linux/amd64 -t "$IMAGE" .
+          docker build --platform linux/amd64 --provenance=false -t "$IMAGE" .
           docker push "$IMAGE"
           echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
       - name: Fetch current task definition

@@ -59,9 +59,9 @@ cd /Users/jcheng/pubprjs/dyn-login
 aws --profile jcheng ecr get-login-password --region us-west-2 \
   | docker login --username AWS --password-stdin 117014118018.dkr.ecr.us-west-2.amazonaws.com
 
-docker build --platform linux/amd64 \
-  -t 117014118018.dkr.ecr.us-west-2.amazonaws.com/dyn-login:bootstrap .
-docker push 117014118018.dkr.ecr.us-west-2.amazonaws.com/dyn-login:bootstrap
+docker build --platform linux/amd64 --provenance=false \
+  -t 117014118018.dkr.ecr.us-west-2.amazonaws.com/dyn-login:bootstrap-v1 .
+docker push 117014118018.dkr.ecr.us-west-2.amazonaws.com/dyn-login:bootstrap-v1
 ```
 
 Set `desired_count = 1` in the pile's Terraform variables and apply a saved plan. Keep that value set for later applies. Terraform ignores later task-definition updates made by GitHub Actions so infrastructure applies do not roll back the deployed app.
