@@ -1,6 +1,6 @@
 # Deployment
 
-The local preview is ready without AWS. These steps are for publishing and deploying the site after the build has been accepted. The implementation workflow does not automatically commit, publish a repository, or apply Terraform.
+Production runs at https://dyn-login.jcheng.org, with the JSON editor at https://dyn-login.jcheng.org/editor. Source is published at https://github.com/jlcheng/dyn-login; pushes to main validate and deploy through GitHub Actions.
 
 ## Infrastructure
 
@@ -12,7 +12,7 @@ cd /Users/jcheng/privprjs/terraform/piles/dyn-login
 
 Refresh credentials with `aws login`. Follow the infrastructure repository's credential instructions: AWS CLI uses `--profile jcheng`; Terraform runs with no `AWS_PROFILE` set.
 
-Before applying, verify the live `ecs-alb-p` VPC matches `jc_default_vpc`, public subnets have internet access, the HTTPS listener has the issued `*.jchengdev.org` certificate, the ALB security group allows outbound TCP 8000 to the task subnets, and listener priority 9 is unused. The implementation inspected existing Terraform definitions, but live verification was blocked by an expired AWS session.
+The service reuses `ecs-alb-p`, the `jc_default_vpc` public subnets, and the HTTPS listener. These were verified during deployment, including ALB outbound access and listener priority 9. The dyn-login pile owns a DNS-validated ACM certificate for `dyn-login.jcheng.org`, its SNI attachment to the shared listener, and DNS records in the existing jcheng.org zone.
 
 ```sh
 aws --profile jcheng elbv2 describe-load-balancers --names ecs-alb-p
@@ -22,7 +22,7 @@ aws --profile jcheng elbv2 describe-listener-certificates --listener-arn <https-
 aws --profile jcheng iam list-open-id-connect-providers
 ```
 
-The pile reuses an existing GitHub OIDC provider by default. If none exists, set `manage_github_oidc_provider = true` in your Terraform variables to create it in this infrastructure repository. Reused resources are data lookups; their names and tags stay managed by their existing piles. Change `listener_priority` if 9 is occupied. All project resources have `Project = dyn-login` and `ManagedBy = terraform` tags where AWS supports them.
+The account had no GitHub OIDC provider at bootstrap, so `terraform.tfvars` sets `manage_github_oidc_provider = true` and this pile owns it. If reusing a provider in a different account, set this to false. Reused resources are data lookups; their names and tags stay managed by their existing piles. Change `listener_priority` if 9 is occupied. All project resources have `Project = dyn-login` and `ManagedBy = terraform` tags where AWS supports them.
 
 Run the existing infrastructure drift check before and after applying:
 
@@ -30,11 +30,11 @@ Run the existing infrastructure drift check before and after applying:
 cd /Users/jcheng/privprjs/terraform
 uv run python scripts/check-all.py
 terraform -chdir=piles/dyn-login init
-terraform -chdir=piles/dyn-login plan -out=dyn-login.tfplan
+terraform -chdir=piles/dyn-login plan -var='desired_count=0' -out=dyn-login.tfplan
 terraform -chdir=piles/dyn-login apply dyn-login.tfplan
 ```
 
-The initial service has zero tasks so bootstrap does not depend on an unpublished image or an unpopulated signing-key secret. The DNS route will return an unavailable response until bootstrap completes. Fargate tasks use the existing public subnets and receive public IPs for outbound AWS API access. Inbound application access is restricted to the existing ALB. This avoids adding a NAT gateway for one small service.
+Use the zero-task override above only for a first bootstrap. The checked-in variables set one task for normal operation. A zero-task bootstrap avoids depending on an unpublished image or unpopulated signing-key secret. The DNS route will return an unavailable response until bootstrap completes. Fargate tasks use the existing public subnets and receive public IPs for outbound AWS API access. Inbound application access is restricted to the existing ALB. This avoids adding a NAT gateway for one small service.
 
 ## Signing key
 
@@ -43,14 +43,14 @@ After Terraform has created the Secrets Manager secret, populate it once through
 ```sh
 cd /Users/jcheng/pubprjs/dyn-login
 uv run python -c 'import secrets; print(secrets.token_urlsafe(48))' \
-  | fnox --non-interactive --no-daemon set SESSION_SIGNING_KEY
+  | AWS_PROFILE=jcheng fnox --non-interactive --no-daemon set SESSION_SIGNING_KEY
 ```
 
 Keep this key stable across deployments. Changing it invalidates all sessions. The task role reads only the application's configuration table and signing secret; the execution role pulls images and writes container logs.
 
 ## Public repository and first image
 
-Create public repository `jlcheng/dyn-login` on branch `main`, then commit the app and connect the local repository when publication is authorized. Set its `AWS_DEPLOY_ROLE_ARN` repository variable to the `github_deploy_role_arn` Terraform output. The deploy role trusts only `repo:jlcheng/dyn-login:ref:refs/heads/main` with audience `sts.amazonaws.com`.
+The public repository is `jlcheng/dyn-login` on branch `main`. Its `AWS_DEPLOY_ROLE_ARN` repository variable is set to the `github_deploy_role_arn` Terraform output. The deploy role trusts only `repo:jlcheng/dyn-login:ref:refs/heads/main` with audience `sts.amazonaws.com`.
 
 Bootstrap the first image before increasing the desired task count:
 
