@@ -46,11 +46,11 @@ uv run python -c 'import secrets; print(secrets.token_urlsafe(48))' \
   | AWS_PROFILE=jcheng fnox --non-interactive --no-daemon set SESSION_SIGNING_KEY
 ```
 
-Keep this key stable across deployments. Changing it invalidates all sessions. The task role reads only the application's configuration table and signing secret; the execution role pulls images and writes container logs.
+Keep this key stable across deployments. Changing it invalidates all sessions. The task role reads only the application's configuration table and signing secret. fnox exec also needs the BatchGetSecretValue API permission; AWS still checks the scoped GetSecretValue permission for each returned secret. The execution role pulls images and writes container logs.
 
 ## Public repository and first image
 
-The public repository is `jlcheng/dyn-login` on branch `main`. Its `AWS_DEPLOY_ROLE_ARN` repository variable is set to the `github_deploy_role_arn` Terraform output. The deploy role trusts only `repo:jlcheng/dyn-login:ref:refs/heads/main` with audience `sts.amazonaws.com`.
+The public repository is `jlcheng/dyn-login` on branch `main`. Its `AWS_DEPLOY_ROLE_ARN` repository variable is set to the `github_deploy_role_arn` Terraform output. The deploy role trusts only `repo:jlcheng@148139/dyn-login@1421042907:ref:refs/heads/main` with audience `sts.amazonaws.com`.
 
 Bootstrap the first image before increasing the desired task count:
 

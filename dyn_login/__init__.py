@@ -18,6 +18,7 @@ from botocore.exceptions import BotoCoreError, ClientError
 from flask import Flask, redirect, render_template, request, url_for
 from itsdangerous import BadSignature, URLSafeSerializer
 from werkzeug.exceptions import HTTPException
+from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.wrappers import Response
 
 from dyn_login.editor import TEMPLATES, configuration_link
@@ -160,6 +161,8 @@ def expected_credentials(configuration: dict[str, Any]) -> dict[str, str]:
 
 def create_app(settings: dict[str, Any] | None = None, *, table: Any = None) -> Flask:
     app = Flask(__name__)
+    # The ALB terminates TLS; trust only its forwarded protocol.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=0, x_proto=1, x_host=0, x_port=0)  # type: ignore[method-assign]
     app.config.from_mapping(
         SECRET_KEY=os.environ.get("SESSION_SIGNING_KEY"),
         CLOCK=time.time,

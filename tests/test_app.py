@@ -266,3 +266,10 @@ def test_no_cache_or_secret_logging(configured, app, config, caplog):
 def test_home_and_health(client):
     assert b"Dyn Login" in client.get("/").data
     assert client.get("/health").json == {"status": "ok"}
+
+
+def test_home_example_uses_https_behind_load_balancer(client):
+    response = client.get(
+        "/", base_url="http://dyn-login.jcheng.org", headers={"X-Forwarded-Proto": "https"}
+    )
+    assert 'base = "https://dyn-login.jcheng.org"' in response.get_data(as_text=True)
