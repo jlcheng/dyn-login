@@ -218,6 +218,11 @@ def test_invalid_paths_preserve_configuration(client, flow_config, app, bad_path
         "reserved_login",
         "extra_credentials",
         "wrong_fields_type",
+        "bare_not_list",
+        "bare_entry_not_string",
+        "bare_not_on_page",
+        "bare_repeated",
+        "unknown_page_key",
     ],
 )
 def test_invalid_flow_preserves_configuration(client, flow_config, app, mutation):
@@ -252,6 +257,16 @@ def test_invalid_flow_preserves_configuration(client, flow_config, app, mutation
         bad["expected_credentials"]["other"] = "value"
     elif mutation == "wrong_fields_type":
         bad["pages"][0]["fields"] = ["username"]
+    elif mutation == "bare_not_list":
+        bad["pages"][0]["bare_fields"] = "username"
+    elif mutation == "bare_entry_not_string":
+        bad["pages"][0]["bare_fields"] = [["username"]]
+    elif mutation == "bare_not_on_page":
+        bad["pages"][0]["bare_fields"] = ["password"]
+    elif mutation == "bare_repeated":
+        bad["pages"][0]["bare_fields"] = ["username", "username"]
+    elif mutation == "unknown_page_key":
+        bad["pages"][0]["hints"] = False
     assert configure(client, bad).status_code == 400
     assert record(app) == before
 
@@ -275,3 +290,38 @@ def test_invalid_and_oversized_json_post_preserve_configuration(client, flow_con
     flow_config["expected_credentials"]["password"] = "x" * 70_000
     assert client.post("/multi/configure", json=flow_config).status_code == 413
     assert record(app) == before
+
+
+def test_bare_field_renders_without_hints_and_posts_under_its_id(client, flow_config):
+    flow_config["pages"][0]["bare_fields"] = ["username"]
+    configure(client, flow_config)
+    html = client.get("/multi/login-step1").get_data(as_text=True)
+    assert '<input type="text" id="un" name="un">' in html
+    assert "<label" not in html
+    assert "placeholder=" not in html and "autocomplete=" not in html
+    assert post(client, 1, {"username": "test-user"}).status_code == 401
+    assert post(client, 1, {"un": "test-user"}).location == "/multi/login-step2"
+    password_page = client.get("/multi/login-step2").get_data(as_text=True)
+    assert 'name="password"' in password_page and 'autocomplete="current-password"' in password_page
+    assert post(client, 2, {"password": "test-password"}).location == "/multi/login-step3"
+    assert post(client, 3, {"otp": "123456"}).location == "/multi/profile"
+
+
+def test_bare_field_next_to_a_normal_field(client):
+    config = {
+        "expected_credentials": {"username": "test-user", "password": "test-password"},
+        "pages": [
+            {
+                "path": "/login",
+                "fields": {"username": "u1", "password": "p1"},
+                "bare_fields": ["username"],
+                "submit_id": "go",
+            }
+        ],
+    }
+    configure(client, config, "one")
+    html = client.get("/one/login").get_data(as_text=True)
+    assert '<input type="text" id="u1" name="u1">' in html
+    assert '<label for="p1">Password</label>' in html
+    response = client.post("/one/login", data={"u1": "test-user", "password": "test-password"})
+    assert response.location == "/one/profile"

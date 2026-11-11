@@ -6,6 +6,7 @@
 - `pages` is the login sequence, in array order.
 - Each page has a `path`, `fields`, and `submit_id`.
 - `fields` maps credential names (`username`, `password`, `otp`) to HTML element IDs.
+- Optional `bare_fields` lists fields on that page to render without hints: no label, placeholder, or `autocomplete`, and the input's `name` is its element ID. Use it to make a page that login heuristics cannot recognize, for example `"bare_fields": ["username"]` on a username-only page.
 - Each credential appears once in the flow. Username and password are required; OTP is optional.
 - Put multiple entries in one `fields` object to show them on the same page. IDs must be distinct on a page but may repeat across different pages.
 - Paths are relative to the configuration ID. `/login-step1` becomes `/<config_id>/login-step1`. `/login` is also the entry/resume URL; it can be the first configured page. `/configure`, `/profile`, and `/logout` are reserved.

@@ -34,6 +34,8 @@ PATH_SEGMENT = re.compile(r"[A-Za-z0-9_~-][A-Za-z0-9._~-]*\Z")
 LIFETIME = 30 * 86400
 COOKIE = "dyn_login"
 CONFIG_ID = re.compile(r"[A-Za-z0-9_~-][A-Za-z0-9._~-]{0,127}\Z")
+PAGE_KEYS = {"path", "fields", "submit_id"}
+OPTIONAL_PAGE_KEYS = {"bare_fields"}
 
 
 class PageError(Exception):
@@ -90,8 +92,14 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
     paths: set[str] = set()
     fields_seen: set[str] = set()
     for index, page in enumerate(pages):
-        if not isinstance(page, dict) or set(page) != {"path", "fields", "submit_id"}:
-            raise PageError("Invalid page", "Each page needs path, fields, and submit_id.")
+        if (
+            not isinstance(page, dict)
+            or not PAGE_KEYS <= set(page) <= PAGE_KEYS | OPTIONAL_PAGE_KEYS
+        ):
+            raise PageError(
+                "Invalid page",
+                "Each page needs path, fields, and submit_id, and may list bare_fields.",
+            )
         path = page["path"]
         if (
             not isinstance(path, str)
@@ -114,6 +122,16 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
             raise PageError("Repeated field", "Each credential may appear on only one page.")
         fields_seen.update(fields)
         validate_element_ids([*fields.values(), page["submit_id"]])
+        bare = page.get("bare_fields", [])
+        if (
+            not isinstance(bare, list)
+            or not all(isinstance(name, str) for name in bare)
+            or len(set(bare)) != len(bare)
+            or not set(bare) <= set(fields)
+        ):
+            raise PageError(
+                "Invalid bare fields", "bare_fields must list fields shown on the same page."
+            )
     if not {"username", "password"} <= fields_seen or set(credentials) != fields_seen:
         raise PageError(
             "Invalid credentials",
@@ -352,8 +370,16 @@ def create_app(settings: dict[str, Any] | None = None, *, table: Any = None) -> 
         if index > completed:
             return redirect(page_url(config_id, pages[completed]))
         page = pages[index]
+        bare_fields = page.get("bare_fields", [])
         fields = [
-            {"name": name, "element_id": page["fields"][name], **info}
+            {
+                "name": name,
+                "element_id": page["fields"][name],
+                # A bare field renders without hints, so it posts under its element ID.
+                "bare": name in bare_fields,
+                "form_name": page["fields"][name] if name in bare_fields else name,
+                **info,
+            }
             for name, info in FIELD_INFO.items()
             if name in page["fields"]
         ]
@@ -361,11 +387,12 @@ def create_app(settings: dict[str, Any] | None = None, *, table: Any = None) -> 
         if request.method == "POST":
             expected = expected_credentials(configuration)
             matches = [
-                name in request.form
+                field["form_name"] in request.form
                 and hmac.compare_digest(
-                    request.form[name].encode("utf-8"), expected[name].encode("utf-8")
+                    request.form[field["form_name"]].encode("utf-8"),
+                    expected[field["name"]].encode("utf-8"),
                 )
-                for name in page["fields"]
+                for field in fields
             ]
             if all(matches):
                 next_step = index + 1

@@ -17,7 +17,11 @@
     {% if error %}<div class="alert" role="alert">{{ error }}</div>{% endif %}
     <form method="post" action="{{ action }}">
       {% for field in fields %}
-      <div class="field"><label for="{{ field.element_id }}">{{ field.label }}</label><input type="{{ field.type }}" id="{{ field.element_id }}" name="{{ field.name }}" placeholder="Your {{ field.label|lower }}" autocomplete="{{ field.autocomplete }}"></div>
+      {% if field.bare %}
+      <div class="field"><input type="{{ field.type }}" id="{{ field.element_id }}" name="{{ field.form_name }}"></div>
+      {% else %}
+      <div class="field"><label for="{{ field.element_id }}">{{ field.label }}</label><input type="{{ field.type }}" id="{{ field.element_id }}" name="{{ field.form_name }}" placeholder="Your {{ field.label|lower }}" autocomplete="{{ field.autocomplete }}"></div>
+      {% endif %}
       {% endfor %}
       <button class="button primary" type="submit" id="{{ page.submit_id }}"><span>{% if page_index + 1 == page_count %}Sign in{% else %}Continue{% endif %}</span><span aria-hidden="true">→</span></button>
     </form>
