@@ -34,6 +34,8 @@ The older five-field format has no `bare_fields`.
 - a bare field next to a normal field
 - the rejected configurations listed above
 
+**Editor template.** The editor's template list has "Two pages, no hints": the "Two pages" template with `"bare_fields": ["username"]` on its first page. Its description reads "Username without hints, then password. Login heuristics find no form."
+
 **Done when** the change is deployed to dyn-login.jcheng.org and the real extension shows the error on a two-page configuration with a bare username.
 
 ## Decisions
@@ -42,6 +44,7 @@ The older five-field format has no `bare_fields`.
 - **The page's "Username" text stays.** The page that failed in the real extension kept the heading, step bar, and Form details text. Hiding them would make dyn-login's page differ from the one that was tested.
 - **A bare field's `name` is its element id.** It needs some name that isn't a credential name, and the element id is already unique on the page.
 - **Name collisions are not blocked.** A collision needs a bare field whose element id equals another field's credential name on the same page. That gives the bare field a credential-like `name`, which defeats the reason for making it bare, so nobody would configure it.
+- **The editor has a template for the page that triggers the error.** It saves remembering the key, and it keeps the bare username alone on its page, the only layout known to work.
 - **The visible "Try going manual" alert needs a catalog-app account,** such as the demo account. On an `unmanaged` account, you only get the `NoLoginFormFound` error.
 
 ## Not in scope
@@ -49,6 +52,6 @@ The older five-field format has no `bare_fields`.
 - Changing the extension or its heuristics.
 - Bare password or verification-code fields. They're allowed by the configuration but not tested or targeted.
 - Hiding the page's "Username" text.
-- An editor template or preview demo for bare fields.
+- A preview demo for bare fields.
 - How Scout records unlabeled fields.
 - Accessibility of bare-field pages. They are test pages.

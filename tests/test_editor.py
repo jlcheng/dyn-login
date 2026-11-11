@@ -21,14 +21,23 @@ def test_editor_page_and_home_link(client):
 def test_all_templates_are_valid_and_cover_useful_flows(client):
     from dyn_login.editor import TEMPLATES
 
-    assert len(TEMPLATES) == 4
+    assert len(TEMPLATES) == 5
     for template in TEMPLATES.values():
         response = client.post(
             "/editor",
             json={"config_id": "template-test", "configuration": template["configuration"]},
         )
         assert response.status_code == 200 and response.json["valid"]
-    assert sorted(len(t["configuration"]["pages"]) for t in TEMPLATES.values()) == [1, 2, 2, 3]
+    assert sorted(len(t["configuration"]["pages"]) for t in TEMPLATES.values()) == [1, 2, 2, 2, 3]
+
+
+def test_no_hints_template_has_a_bare_username_alone_on_its_page():
+    from dyn_login.editor import TEMPLATES
+
+    # A bare username next to a password field is still recognized, so it must stand alone.
+    first_page = TEMPLATES["no-hints"]["configuration"]["pages"][0]
+    assert first_page["fields"] == {"username": "un"}
+    assert first_page["bare_fields"] == ["username"]
 
 
 @pytest.mark.parametrize("fixture_name", ["config", "flow_config"])

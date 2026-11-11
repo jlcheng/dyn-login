@@ -64,6 +64,19 @@ TEMPLATES = {
             {"path": "/login-step2", "fields": {"otp": "o"}, "submit_id": "sign-in"},
         ],
     ),
+    "no-hints": template(
+        "Two pages, no hints",
+        "Username without hints, then password. Login heuristics find no form.",
+        [
+            {
+                "path": "/login-step1",
+                "fields": {"username": "un"},
+                "bare_fields": ["username"],
+                "submit_id": "next-username",
+            },
+            {"path": "/login-step2", "fields": {"password": "p"}, "submit_id": "sign-in"},
+        ],
+    ),
 }
 
 
