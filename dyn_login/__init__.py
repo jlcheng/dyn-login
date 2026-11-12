@@ -7,6 +7,7 @@ import json
 import math
 import os
 import re
+import struct
 import time
 from collections.abc import Callable
 from decimal import Decimal
@@ -36,6 +37,11 @@ COOKIE = "dyn_login"
 CONFIG_ID = re.compile(r"[A-Za-z0-9_~-][A-Za-z0-9._~-]{0,127}\Z")
 PAGE_KEYS = {"path", "fields", "submit_id"}
 OPTIONAL_PAGE_KEYS = {"bare_fields"}
+FAVICON_PREFIX = "data:image/png;base64,"
+# Small enough that a configuration with a favicon still fits in a GET link.
+FAVICON_MAX_LENGTH = 2048
+FAVICON_MAX_PIXELS = 128
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
 
 class PageError(Exception):
@@ -67,9 +73,41 @@ def validate_element_ids(ids: list[Any]) -> None:
         raise PageError("Invalid element IDs", "Use a different ID for each element on a page.")
 
 
+def validate_favicon(favicon: Any) -> str:
+    error = PageError(
+        "Invalid favicon",
+        f"Use a {FAVICON_PREFIX} string of at most {FAVICON_MAX_LENGTH} characters"
+        f" for a PNG up to {FAVICON_MAX_PIXELS}x{FAVICON_MAX_PIXELS}.",
+    )
+    if (
+        not isinstance(favicon, str)
+        or len(favicon) > FAVICON_MAX_LENGTH
+        or not favicon.startswith(FAVICON_PREFIX)
+    ):
+        raise error
+    try:
+        png = base64.b64decode(favicon.removeprefix(FAVICON_PREFIX), validate=True)
+    except ValueError:
+        raise error from None
+    # A PNG starts with its signature, then the IHDR chunk holding width and height.
+    if len(png) < 24 or not png.startswith(PNG_SIGNATURE) or png[12:16] != b"IHDR":
+        raise error
+    width, height = struct.unpack(">II", png[16:24])
+    if not (1 <= width <= FAVICON_MAX_PIXELS and 1 <= height <= FAVICON_MAX_PIXELS):
+        raise error
+    return favicon
+
+
 def validate_configuration(configuration: Any) -> dict[str, Any]:
     if not isinstance(configuration, dict):
         raise PageError("Invalid configuration", "The configuration must be a JSON object.")
+    login = {key: value for key, value in configuration.items() if key != "favicon"}
+    if "favicon" not in configuration:
+        return validate_login(login)
+    return {**validate_login(login), "favicon": validate_favicon(configuration["favicon"])}
+
+
+def validate_login(configuration: dict[str, Any]) -> dict[str, Any]:
     if set(configuration) == FIELDS:
         if not all(isinstance(value, str) for value in configuration.values()):
             raise PageError("Invalid configuration", "Every configuration field must be a string.")
@@ -268,7 +306,7 @@ def create_app(settings: dict[str, Any] | None = None, *, table: Any = None) -> 
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Content-Security-Policy"] = (
-            "default-src 'none'; style-src 'self'; img-src 'self'; form-action 'self'; "
+            "default-src 'none'; style-src 'self'; img-src 'self' data:; form-action 'self'; "
             "base-uri 'none'; frame-ancestors 'none'"
         )
         if request.endpoint == "editor":
@@ -419,6 +457,7 @@ def create_app(settings: dict[str, Any] | None = None, *, table: Any = None) -> 
             page_count=len(pages),
             action=page_url(config_id, page),
             error=error,
+            favicon=configuration.get("favicon"),
         )
         if error:
             return set_progress(app.make_response((html, 401)), config_id, item, index)
@@ -450,6 +489,7 @@ def create_app(settings: dict[str, Any] | None = None, *, table: Any = None) -> 
             "profile.html",
             config_id=config_id,
             username=expected_credentials(item["configuration"])["username"],
+            favicon=item["configuration"].get("favicon"),
         )
 
     @app.get("/<config_id>/logout")

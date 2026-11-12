@@ -37,7 +37,7 @@ print(f"{base}/{config_id}/configure?" + urlencode({"data": data}))
 
 `GET /<config_id>/configure?data=...` atomically creates or replaces a configuration and redirects to its login page. Reusing the ID keeps the same URLs, renews the 30-day lifetime, and invalidates old sessions. Invalid requests leave existing data untouched. Anyone with the ID can replace it, so use a fresh UUID for an isolated test.
 
-The five fields are required strings. Element IDs must be nonempty, distinct, and contain no ASCII whitespace or null characters. Config IDs contain URL-safe ASCII letters, digits, `_`, `-`, `.`, `~`, with no leading `.`, and have at most 128 characters. The application accepts configuration query strings and form bodies up to 64 KiB; proxies and browsers may impose smaller URL limits.
+The five fields are required strings. Element IDs must be nonempty, distinct, and contain no ASCII whitespace or null characters. Config IDs contain URL-safe ASCII letters, digits, `_`, `-`, `.`, `~`, with no leading `.`, and have at most 128 characters. An optional `favicon` replaces the page icon: a `data:image/png;base64,` string of at most 2,048 characters, for a PNG up to 128x128. That cap keeps the configuration small enough for a GET link, so use a simple or small icon, or shrink it with a PNG optimizer such as `oxipng` or `pngquant`. The application accepts configuration query strings and form bodies up to 64 KiB; proxies and browsers may impose smaller URL limits. The full configuration shape, for both formats, is in [docs/configuration.md](docs/configuration.md).
 
 ## Test a flow
 
