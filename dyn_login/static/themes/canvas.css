@@ -1,0 +1,77 @@
+/*
+  Canvas: modeled on a design tool's sign-in page. Measured from the real page:
+  plain white, no card, soft gray borderless fields with a small monospace label
+  inside the top of the field, and a near-black button with 8px corners. The
+  real page's fonts are licensed; Inter is the free font that page also loads.
+*/
+
+@font-face {
+  font-family: "Inter";
+  src: url("../fonts/InterVariable-latin.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --primary: #2c2c2c;
+  --primary-hover: #000;
+  --on-primary: #fff;
+  --accent: #0d99ff;
+  --font: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --heading-font: var(--font);
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --ink: #1a1a1a;
+  --heading: #1a1a1a;
+  --muted: #6e6e6e;
+  --label: #1a1a1a;
+  --page: #fff;
+  --surface: #fff;
+  --border: #e6e6e6;
+  --divider: #e6e6e6;
+  --input-bg: #f2f2f2;
+  --input-border: transparent;
+  --placeholder: #8f8f8f;
+  --focus: #0d99ff;
+  --focus-ring: 0 0 0 1px #0d99ff;
+  --radius: 6px;
+  --card-radius: 0;
+  --card-border: 0;
+  --card-shadow: none;
+  --card-padding: 0 32px;
+  --error: #dc3412;
+  --error-bg: #fff1ee;
+  --error-border: #ffd3c9;
+  --success: #14ae5c;
+  --success-bg: #e8f7ee;
+  --track: #e6e6e6;
+  --code-bg: #f2f2f2;
+  --code-ink: #444;
+}
+
+.page-intro h1 { font-size: 32px; font-weight: 500; letter-spacing: -0.32px; line-height: 1.3; }
+.page-intro p { font-size: 14px; }
+.card-heading h2 { font-size: 18px; font-weight: 500; letter-spacing: -0.2px; }
+.card-description { font-size: 14px; }
+
+/* The label sits inside the top of the field, as on the real page. */
+.field { position: relative; margin-bottom: 16px; }
+.field label {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.55px;
+  pointer-events: none;
+}
+.field input { height: 53px; padding: 24px 12px 6px; font-size: 18px; font-weight: 320; }
+.field input:focus { background: #fff; }
+
+form .button { margin-top: 24px; }
+.button { border-radius: 8px; }
+.button.primary { justify-content: center; height: 48px; font-size: 18px; font-weight: 600; }
+.card-footnote { border-top: 0; }

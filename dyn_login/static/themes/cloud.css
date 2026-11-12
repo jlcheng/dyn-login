@@ -1,0 +1,55 @@
+/*
+  Cloud: modeled on a large CRM's sign-in page. Measured from the real page:
+  navy text on a pale gray page, a small white card with a light border, 4px
+  corners, and a bright blue button. The real page's font is licensed, so this
+  uses the system font, which is the closest free match.
+*/
+
+:root {
+  --primary: #0070d2;
+  --primary-hover: #005fb2;
+  --on-primary: #fff;
+  --accent: #00a1e0;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --heading-font: var(--font);
+  --mono: Consolas, Menlo, Monaco, "Courier New", monospace;
+
+  --ink: #03234d;
+  --heading: #16325c;
+  --muted: #54698d;
+  --label: #54698d;
+  --page: #f4f6f9;
+  --surface: #fff;
+  --border: #d8dde6;
+  --divider: #e5e9f0;
+  --input-bg: #fff;
+  --input-border: #969492;
+  --placeholder: #a8b7c7;
+  --focus: #1589ee;
+  --focus-ring: 0 0 3px #0070d2;
+  --radius: 4px;
+  --card-radius: 4px;
+  --card-border: 1px solid #d8dde6;
+  --card-shadow: none;
+  --card-padding: 20px;
+  --error: #c23934;
+  --error-bg: #fdf2f2;
+  --error-border: #f2c1bf;
+  --success: #04844b;
+  --success-bg: #e3f3eb;
+  --track: #d8dde6;
+  --code-bg: #eef1f6;
+  --code-ink: #54698d;
+}
+
+.page-intro h1 { font-size: 24px; font-weight: 300; letter-spacing: 0; }
+.page-intro p { font-size: 13px; }
+.eyebrow { letter-spacing: 1px; }
+.card-heading h2 { flex: 1; text-align: center; font-size: 14px; font-weight: 700; letter-spacing: 0; }
+.card-description { text-align: center; font-size: 13px; margin-bottom: 20px; }
+.field { margin-bottom: 16px; }
+.field label { font-size: 12px; font-weight: 400; margin-bottom: 8px; }
+.field input { height: 43px; padding: 12px; font-size: 13px; }
+form .button { margin-top: 16px; }
+.button.primary { justify-content: center; height: 43px; font-size: 13px; font-weight: 400; }
+.flow-progress li { height: 3px; border-radius: 2px; }

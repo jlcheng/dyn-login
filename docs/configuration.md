@@ -15,6 +15,9 @@ const ElementId = z.string().regex(/^[^\t\n\f\r \0]+$/);
 // A PNG data URL. See the favicon rules below.
 const Favicon = z.string().startsWith("data:image/png;base64,").max(2048);
 
+// A prebuilt look. The list lives in dyn_login/themes.py.
+const Theme = z.enum(["cloud", "canvas"]);
+
 // The original one-page format.
 const FiveFieldConfig = z.strictObject({
   username_id: ElementId,
@@ -23,6 +26,7 @@ const FiveFieldConfig = z.strictObject({
   expected_username: z.string(),
   expected_password: z.string(),
   favicon: Favicon.optional(),
+  theme: Theme.optional(),
 });
 
 const Credential = z.enum(["username", "password", "otp"]);
@@ -42,6 +46,7 @@ const MultiPageConfig = z.strictObject({
   expected_credentials: z.partialRecord(Credential, z.string()),
   pages: z.array(Page).min(1),
   favicon: Favicon.optional(),
+  theme: Theme.optional(),
 });
 
 const SiteConfig = z.union([FiveFieldConfig, MultiPageConfig]);
@@ -72,6 +77,12 @@ Every object is strict: an unknown key makes the whole configuration invalid.
 - The decoded bytes must be a PNG: the PNG signature, then an `IHDR` chunk.
 - The width and height in that header must each be from 1 to 128.
 - The 2,048-character cap keeps a configuration with a favicon small enough for a GET link. See the main README for tips on shrinking an icon.
+
+**Theme (both formats)**
+
+- `cloud` is modeled on Salesforce's sign-in page and `canvas` on Figma's. The names stay neutral on purpose, so the public site never names a brand next to a login form.
+- A theme only changes how the login and profile pages look. The page's HTML and text are identical under every theme, so an extension test behaves the same in all of them. Themes use no images or logos.
+- To add a theme, add it to `THEMES` in `dyn_login/themes.py` and add a stylesheet with the same name in `dyn_login/static/themes/`. The comment at the top of `base.css` there lists the settings every theme must fill in, including separate body and heading fonts (`--font` and `--heading-font`). Both current themes use one font for both. The tests check that each theme sets all of them and doesn't add, hide, or rewrite text.
 
 ## Outside the object
 

@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Dyn Login{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  {% if theme %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='themes/base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='themes/' ~ theme ~ '.css') }}">
+  {% endif %}
   {% if favicon %}
   <link rel="icon" href="{{ favicon }}" type="image/png">
   {% else %}

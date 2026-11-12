@@ -5,6 +5,10 @@ const editor = document.querySelector("#configuration");
 const configId = document.querySelector("#config-id");
 const templates = document.querySelector("#template");
 const description = document.querySelector("#template-description");
+const themes = document.querySelector("#theme");
+const themeDescription = document.querySelector("#theme-description");
+const defaultThemeDescription = themeDescription.textContent;
+const previewTheme = document.querySelector("#preview-theme");
 const status = document.querySelector("#editor-status");
 const output = document.querySelector("#configure-url");
 const lengthNote = document.querySelector("#link-length");
@@ -33,6 +37,12 @@ function changed() {
   message("Configuration changed. Validate to update your link.");
 }
 
+function applyTheme(configuration) {
+  if (themes.value) configuration.theme = themes.value;
+  else delete configuration.theme;
+  return configuration;
+}
+
 function parseJson() {
   try {
     return JSON.parse(editor.value);
@@ -45,10 +55,22 @@ editor.addEventListener("input", changed);
 configId.addEventListener("input", changed);
 templates.addEventListener("change", () => {
   const option = templates.selectedOptions[0];
-  editor.value = JSON.stringify(JSON.parse(option.dataset.configuration), null, 2);
+  editor.value = JSON.stringify(applyTheme(JSON.parse(option.dataset.configuration)), null, 2);
   description.textContent = option.dataset.description;
   changed();
   message("Template loaded. Edit the JSON or validate to get your link.");
+});
+
+themes.addEventListener("change", () => {
+  themeDescription.textContent = themes.selectedOptions[0].dataset.description || defaultThemeDescription;
+  previewTheme.search = themes.value ? new URLSearchParams({ theme: themes.value }) : "";
+  changed();
+  try {
+    editor.value = JSON.stringify(applyTheme(parseJson()), null, 2);
+    message("Theme set. Validate to get your link.");
+  } catch (error) {
+    message(error.message, "error");
+  }
 });
 
 document.querySelector("#new-id").addEventListener("click", () => {

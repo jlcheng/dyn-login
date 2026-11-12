@@ -23,6 +23,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.wrappers import Response
 
 from dyn_login.editor import TEMPLATES, configuration_link
+from dyn_login.themes import THEMES
 
 FIELDS = {"username_id", "password_id", "login_id", "expected_username", "expected_password"}
 ID_FIELDS = ("username_id", "password_id", "login_id")
@@ -98,13 +99,33 @@ def validate_favicon(favicon: Any) -> str:
     return favicon
 
 
+def validate_theme(theme: Any) -> str:
+    if not isinstance(theme, str) or theme not in THEMES:
+        raise PageError("Unknown theme", f"Use one of these themes: {', '.join(THEMES)}.")
+    return theme
+
+
+# Settings that change how pages look, allowed in both configuration formats.
+LOOK_SETTINGS: dict[str, Callable[[Any], str]] = {
+    "favicon": validate_favicon,
+    "theme": validate_theme,
+}
+
+
 def validate_configuration(configuration: Any) -> dict[str, Any]:
     if not isinstance(configuration, dict):
         raise PageError("Invalid configuration", "The configuration must be a JSON object.")
-    login = {key: value for key, value in configuration.items() if key != "favicon"}
-    if "favicon" not in configuration:
-        return validate_login(login)
-    return {**validate_login(login), "favicon": validate_favicon(configuration["favicon"])}
+    login = {key: value for key, value in configuration.items() if key not in LOOK_SETTINGS}
+    look = {
+        key: validate(configuration[key])
+        for key, validate in LOOK_SETTINGS.items()
+        if key in configuration
+    }
+    return {**validate_login(login), **look}
+
+
+def look(configuration: dict[str, Any]) -> dict[str, Any]:
+    return {key: configuration.get(key) for key in LOOK_SETTINGS}
 
 
 def validate_login(configuration: dict[str, Any]) -> dict[str, Any]:
@@ -215,6 +236,30 @@ def expected_credentials(configuration: dict[str, Any]) -> dict[str, str]:
     }
 
 
+def page_fields(page: dict[str, Any]) -> list[dict[str, Any]]:
+    bare_fields = page.get("bare_fields", [])
+    return [
+        {
+            "name": name,
+            "element_id": page["fields"][name],
+            # A bare field renders without hints, so it posts under its element ID.
+            "bare": name in bare_fields,
+            "form_name": page["fields"][name] if name in bare_fields else name,
+            **info,
+        }
+        for name, info in FIELD_INFO.items()
+        if name in page["fields"]
+    ]
+
+
+# A sample one-page login for previewing a theme without creating a configuration.
+PREVIEW_PAGE = {
+    "path": "/login",
+    "fields": {"username": "un", "password": "p"},
+    "submit_id": "sign-in",
+}
+
+
 def create_app(settings: dict[str, Any] | None = None, *, table: Any = None) -> Flask:
     app = Flask(__name__)
     # The ALB terminates TLS; trust only its forwarded protocol.
@@ -306,8 +351,8 @@ def create_app(settings: dict[str, Any] | None = None, *, table: Any = None) -> 
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Content-Security-Policy"] = (
-            "default-src 'none'; style-src 'self'; img-src 'self' data:; form-action 'self'; "
-            "base-uri 'none'; frame-ancestors 'none'"
+            "default-src 'none'; style-src 'self'; img-src 'self' data:; font-src 'self'; "
+            "form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
         )
         if request.endpoint == "editor":
             response.headers["Content-Security-Policy"] += "; script-src 'self'; connect-src 'self'"
@@ -342,6 +387,7 @@ def create_app(settings: dict[str, Any] | None = None, *, table: Any = None) -> 
             return render_template(
                 "editor.html",
                 templates=TEMPLATES,
+                themes=THEMES,
                 config_id=str(uuid4()),
                 initial_json=json.dumps(
                     TEMPLATES["single"]["configuration"], indent=2, ensure_ascii=False
@@ -360,6 +406,28 @@ def create_app(settings: dict[str, Any] | None = None, *, table: Any = None) -> 
             return {"valid": False, "error": f"{error.title}: {error.message}"}, error.status
         except HTTPException as error:
             return {"valid": False, "error": error.description}, error.code or 400
+
+    # One path segment, so it can't collide with a configuration's /<config_id>/... pages.
+    @app.route("/theme-preview", methods=["GET", "POST"])
+    def theme_preview() -> str:
+        theme = request.args.get("theme") or None
+        if theme is not None and theme not in THEMES:
+            raise PageError(
+                "Theme not found", f"Use one of these themes: {', '.join(THEMES)}.", 404
+            )
+        # Nothing is configured here, so any sign-in shows the error state.
+        error = "Username or password is incorrect. Please try again."
+        return render_template(
+            "login.html",
+            config_id="theme-preview",
+            page=PREVIEW_PAGE,
+            fields=page_fields(PREVIEW_PAGE),
+            page_index=0,
+            page_count=1,
+            action=request.full_path,
+            error=error if request.method == "POST" else None,
+            theme=theme,
+        )
 
     @app.get("/health")
     def health() -> dict[str, str]:
@@ -408,19 +476,7 @@ def create_app(settings: dict[str, Any] | None = None, *, table: Any = None) -> 
         if index > completed:
             return redirect(page_url(config_id, pages[completed]))
         page = pages[index]
-        bare_fields = page.get("bare_fields", [])
-        fields = [
-            {
-                "name": name,
-                "element_id": page["fields"][name],
-                # A bare field renders without hints, so it posts under its element ID.
-                "bare": name in bare_fields,
-                "form_name": page["fields"][name] if name in bare_fields else name,
-                **info,
-            }
-            for name, info in FIELD_INFO.items()
-            if name in page["fields"]
-        ]
+        fields = page_fields(page)
         error = None
         if request.method == "POST":
             expected = expected_credentials(configuration)
@@ -457,7 +513,7 @@ def create_app(settings: dict[str, Any] | None = None, *, table: Any = None) -> 
             page_count=len(pages),
             action=page_url(config_id, page),
             error=error,
-            favicon=configuration.get("favicon"),
+            **look(configuration),
         )
         if error:
             return set_progress(app.make_response((html, 401)), config_id, item, index)
@@ -489,7 +545,7 @@ def create_app(settings: dict[str, Any] | None = None, *, table: Any = None) -> 
             "profile.html",
             config_id=config_id,
             username=expected_credentials(item["configuration"])["username"],
-            favicon=item["configuration"].get("favicon"),
+            **look(item["configuration"]),
         )
 
     @app.get("/<config_id>/logout")

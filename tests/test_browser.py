@@ -7,6 +7,8 @@ from conftest import configure_url
 from playwright.sync_api import sync_playwright
 from werkzeug.serving import make_server
 
+from dyn_login.themes import THEMES
+
 
 @pytest.fixture
 def website(app, client, config):
@@ -203,4 +205,67 @@ def test_editor_errors_stale_links_and_mobile_layout(website, browser):
     expect(page.get_by_role("status")).to_contain_text("too long")
     assert copy.is_disabled()
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    page.close()
+
+
+@pytest.mark.browser
+@pytest.mark.parametrize("theme", THEMES)
+def test_theme_changes_only_how_the_page_looks(website, browser, client, config, theme):
+    page = browser.new_page()
+    errors = []
+    page.on("console", lambda message: message.type == "error" and errors.append(message.text))
+    page.goto(f"{website}/alpha/login")
+    text = page.evaluate("document.body.innerText")
+    html = page.locator("main").inner_html()
+    button = page.locator("#submit-button")
+    color = button.evaluate("e => getComputedStyle(e).backgroundColor")
+
+    client.get(configure_url("alpha", {**config, "theme": theme}))
+    page.goto(f"{website}/alpha/login")
+    page.evaluate("document.fonts.ready")
+    assert page.evaluate("document.body.innerText") == text
+    assert page.locator("main").inner_html() == html
+    assert button.evaluate("e => getComputedStyle(e).backgroundColor") != color
+    assert page.get_by_label("Username", exact=True).is_visible()
+    assert page.get_by_label("Password", exact=True).is_visible()
+    page.evaluate("document.documentElement.style.setProperty('--heading-font', 'serif')")
+    fonts = page.evaluate(
+        "['h1', 'h2', 'label'].map(s => getComputedStyle(document.querySelector(s)).fontFamily)"
+    )
+    assert fonts[:2] == ["serif", "serif"] and fonts[2] != "serif"
+    page.set_viewport_size({"width": 390, "height": 844})
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    page.locator("#user-field").fill("test-user")
+    page.locator("#password-field").fill("test-password")
+    button.click()
+    assert page.url.endswith("/alpha/profile")
+    assert errors == []
+    page.close()
+
+
+@pytest.mark.browser
+def test_editor_theme_survives_template_changes(website, browser):
+    import json
+
+    page = browser.new_page()
+    page.goto(f"{website}/editor")
+    editor = page.get_by_label("Configuration JSON", exact=True)
+    page.get_by_label("Theme", exact=True).select_option("canvas")
+    assert json.loads(editor.input_value())["theme"] == "canvas"
+    with page.expect_popup() as popup:
+        page.get_by_role("link", name="Preview ↗").click()
+    preview = popup.value
+    assert preview.url.endswith("/theme-preview?theme=canvas")
+    assert "/static/themes/canvas.css" in preview.content()
+    preview.close()
+    page.get_by_label("Start from a template", exact=True).select_option("two")
+    assert json.loads(editor.input_value())["theme"] == "canvas"
+    page.get_by_role("button", name="Validate & generate link", exact=True).click()
+    link = page.get_by_label("Configure URL", exact=True)
+    page.wait_for_function("document.querySelector('#configure-url').value !== ''")
+    page.goto(link.input_value())
+    assert "/static/themes/canvas.css" in page.content()
+    page.go_back()
+    page.get_by_label("Theme", exact=True).select_option("")
+    assert "theme" not in json.loads(editor.input_value())
     page.close()

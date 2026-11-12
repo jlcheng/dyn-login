@@ -7,6 +7,7 @@
     <section class="editor-panel">
       <div class="editor-panel-header"><div><span class="panel-number">01</span><h2>The configuration</h2></div><button class="text-button" type="button" id="format-json">Format JSON</button></div>
       <div class="template-control"><label for="template">Start from a template</label><select id="template">{% for key, template in templates.items() %}<option value="{{ key }}" data-configuration="{{ template.configuration|tojson|forceescape }}" data-description="{{ template.description }}">{{ template.label }}</option>{% endfor %}</select><p id="template-description">{{ templates.single.description }}</p></div>
+      <div class="template-control"><label for="theme">Theme</label><select id="theme"><option value="">Default</option>{% for key, theme in themes.items() %}<option value="{{ key }}" data-description="{{ theme.description }}">{{ theme.label }}</option>{% endfor %}</select><p><span id="theme-description">The standard Dyn Login look.</span> <a id="preview-theme" href="{{ url_for('theme_preview') }}" target="_blank" rel="noopener noreferrer">Preview ↗</a></p></div>
       <div class="json-label"><label for="configuration">Configuration JSON</label><span>EDITABLE</span></div>
       <textarea id="configuration" class="json-editor" spellcheck="false" autocomplete="off" autocapitalize="off" rows="24">{{ initial_json }}</textarea>
       <p class="editor-small-note">Field names map to HTML element IDs. Verification codes are fixed test values.</p>

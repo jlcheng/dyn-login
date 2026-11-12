@@ -1,0 +1,76 @@
+/*
+  Shared rules for every theme. A theme stylesheet loads after this one and sets
+  the variables below on :root. It may add rules of its own, but a theme only
+  changes how a page looks: it must not add, hide, or reword text, and it must
+  not load images.
+
+  The theme contract:
+    --primary, --primary-hover, --on-primary   main button and strong accents
+    --accent                                    dots, current step, brand mark
+    --font, --heading-font, --mono              body, heading, and monospace fonts
+    --ink, --heading, --muted, --label          text colors
+    --page, --surface, --border, --divider      backgrounds and lines
+    --input-bg, --input-border, --placeholder   form fields
+    --focus, --focus-ring                       focused field
+    --radius, --card-radius, --card-border, --card-shadow, --card-padding
+    --error, --error-bg, --error-border
+    --success, --success-bg
+    --track, --code-bg, --code-ink
+*/
+
+:root {
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--page);
+}
+
+:focus-visible { outline-color: var(--focus); }
+
+.site-header, .site-footer, .config-strip, .form-details dl { border-color: var(--border); }
+.brand-icon { background: var(--heading); }
+.accent, .brand-dot { color: var(--accent); }
+.brand-icon span, .status-dot { background: var(--accent); }
+.header-note, .page-intro p, .card-description, .form-details, .understated, .site-footer { color: var(--muted); }
+.site-footer a:hover { color: var(--ink); }
+.eyebrow, .flow-header span:first-child { color: var(--primary); }
+.page-intro h1, .card-heading h2, .profile-card h2, .profile-username { color: var(--heading); }
+h1, h2 { font-family: var(--heading-font); }
+
+.auth-card {
+  background: var(--surface);
+  border: var(--card-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  padding: var(--card-padding);
+}
+.small-icon { border-color: var(--border); color: var(--primary); border-radius: var(--radius); }
+
+.field label { color: var(--label); }
+.field input {
+  color: var(--ink);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius);
+}
+.field input::placeholder { color: var(--placeholder); }
+.field input:focus { border-color: var(--focus); box-shadow: var(--focus-ring); }
+
+.button { border-radius: var(--radius); }
+.button.primary { background: var(--primary); color: var(--on-primary); }
+.button.primary:hover { background: var(--primary-hover); }
+.button.primary span:last-child { color: var(--on-primary); }
+
+.card-footnote { border-color: var(--divider); color: var(--muted); }
+.lock-icon, .lock-icon:before { border-color: currentColor; }
+.config-label { color: var(--muted); }
+.config-strip code, .form-details code { font-family: var(--mono); background: var(--code-bg); color: var(--code-ink); }
+
+.alert { background: var(--error-bg); border-color: var(--error-border); color: var(--error); border-radius: var(--radius); }
+
+.success-mark { background: var(--success-bg); color: var(--success); }
+.profile-status { border-color: var(--border); color: var(--success); }
+.profile-status .status-dot { background: var(--success); }
+
+.flow-progress li { background: var(--track); }
+.flow-progress li.current { background: var(--accent); }
+.flow-progress li.complete { background: var(--primary); }
